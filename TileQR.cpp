@@ -51,6 +51,7 @@ int main(int argc, const char * argv[])
 	cout << ", MT = " << MT << ", NT = " << NT << endl;
 	#endif
 
+	// 20170622
 	cout << "mb(0,0) = " << A->mb(0,0) << ", nb(0,0) = " << A->nb(0,0) << endl;
 
 	// refered in workspace.c of PLASMA
