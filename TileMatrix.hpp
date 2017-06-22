@@ -164,8 +164,8 @@ public:
 		int tj = j/nb_;
 
 		// 当該タイルのサイズ
-		int mb = (ti != mt_-1) ? mb_ : m_ % mb_;
-		int nb = (tj != nt_-1) ? nb_ : n_ % nb_;
+		int mb = TileMatrix::mb(ti,tj);
+		int nb = TileMatrix::nb(ti,tj);
 
 		// グローバル配列の位置
 		int pos = 0;
