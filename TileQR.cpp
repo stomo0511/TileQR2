@@ -28,7 +28,7 @@ int main(int argc, const char * argv[])
 	if (argc < 5)
 	{
 		cerr << "Usage: a.out [M] [N] [NB] [IB]\n";
-		exit (1);
+		exit (EXIT_FAILURE);
 	}
 	
 	const int M =  atoi(argv[1]);  // n. of rows of the matrix
@@ -51,9 +51,6 @@ int main(int argc, const char * argv[])
 	cout << ", MT = " << MT << ", NT = " << NT << endl;
 	#endif
 
-	// 20170622
-	cout << "mb(0,0) = " << A->mb(0,0) << ", nb(0,0) = " << A->nb(0,0) << endl;
-
 	// refered in workspace.c of PLASMA
 	TileMatrix *T = new TileMatrix(MT*IB,NT*NB,IB,NB,IB);
 	
@@ -69,14 +66,6 @@ int main(int argc, const char * argv[])
 	#endif
 	// Definitions and Initialize　END
 
-	for (int i=0; i<M; i++)
-	{
-		for (int j=0;j<N; j++)
-			cout << A->Get_Val(i,j) << ", ";
-		cout << endl;
-	}
-	cout << endl;
-
 	// Timer start
 	double time = omp_get_wtime();
 
@@ -89,14 +78,6 @@ int main(int argc, const char * argv[])
 	time = omp_get_wtime() - time;
 	cout << M << ", " << NB << ", " << IB << ", " << time << endl;
 	
-	for (int i=0; i<M; i++)
-	{
-		for (int j=0;j<N; j++)
-			cout << A->Get_Val(i,j) << ", ";
-		cout << endl;
-	}
-	cout << endl;
-
 	#ifdef DEBUG
 	//////////////////////////////////////////////////////////////////////
 	// Regenerate Q

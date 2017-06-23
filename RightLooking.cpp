@@ -36,6 +36,12 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 			double *Tau = new double [A->nb(tk,tk)];
 			double *Work = new double [A->nb(tk,tk)*A->ib()];
 
+#ifdef COUT
+//			A->Show_all();
+			cout << "(" << tk << "," << tk << ")\n";
+			A->Show_tile(tk,tk);
+#endif
+
 			int info = core_dgeqrt( A->mb(tk,tk), A->nb(tk,tk), A->ib(),
 					A->ttop(tk,tk), A->mb(tk,tk),
 					T->ttop(tk,tk), T->mb(tk,tk),
@@ -50,6 +56,12 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 			#pragma omp critical
 			cout << omp_get_thread_num() << " : " << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
 			#endif
+
+#ifdef COUT
+			cout << "(" << tk << "," << tk << ")\n";
+			A->Show_tile(tk,tk);
+			A->Show_all();
+#endif
 
 			delete[] Tau;
 			delete[] Work;

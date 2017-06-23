@@ -14,8 +14,8 @@ CXX =	/usr/local/bin/g++ -fopenmp
 
 CXXFLAGS =	-O2 -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR) 
 
-RLOBJS =		TileQR.o Check_Accuracy.o RightLooking.o
-RTOBJS =		TileQR.o Check_Accuracy.o RightLooking_Task.o
+RLOBJS =	TileMatrix.o TileQR.o Check_Accuracy.o RightLooking.o
+RTOBJS =	TileMatrix.o TileQR.o Check_Accuracy.o RightLooking_Task.o
 
 all:	RL
 
