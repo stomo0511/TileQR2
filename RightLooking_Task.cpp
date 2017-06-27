@@ -35,7 +35,6 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 		{
 			for (int tk=0; tk < min(MT,NT); tk++ )
 			{
-
 				double *Akk_top = A->ttop(tk,tk);
 				int Akk_m = A->mb(tk,tk);
 				int Akk_n = A->nb(tk,tk);
@@ -85,11 +84,11 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 						double *Work = new double [Akj_n*ib];
 
 						int info = core_dormqr( PlasmaLeft, PlasmaTrans,
-								Akj_m, Akj_n, Akk_n, ib,
+								Akj_m, Akj_n, min(Akk_m,Akk_n), ib,
 								Akk_top, Akk_m,
 								Tkk_top, Tkk_m,
 								Akj_top, Akj_m,
-								Work, ib);
+								Work, Akj_n);
 						if (info != PlasmaSuccess)
 						{
 							cerr << "core_dormqr() failed\n";
@@ -107,12 +106,12 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 
 				for (int ti=tk+1; ti < MT; ti++)
 				{
-					double *Aik_top = A.ttop(ti,tk);
-					int Aik_m = A.mb(ti,tk);
-					int Aik_n = A.nb(ti,tk);
+					double *Aik_top = A->ttop(ti,tk);
+					int Aik_m = A->mb(ti,tk);
+					int Aik_n = A->nb(ti,tk);
 
-					double *Tik_top = T.ttop(ti,tk);
-					int Tik_m = T.mb(ti,tk);
+					double *Tik_top = T->ttop(ti,tk);
+					int Tik_m = T->mb(ti,tk);
 
 					#pragma omp task depend(inout:Akk_top[:Akk_m*Akk_n]) \
 									 depend(inout:Aik_top[:Aik_m*Aik_n]) \
@@ -143,13 +142,13 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 
 					for (int tj=tk+1; tj < NT; tj++)
 					{
-						double *Akj_top = A.ttop(tk,tj);
-						int Akj_m = A.mb(tk,tj);
-						int Akj_n = A.nb(tk,tj);
+						double *Akj_top = A->ttop(tk,tj);
+						int Akj_m = A->mb(tk,tj);
+						int Akj_n = A->nb(tk,tj);
 
-						double *Aij_top = A.ttop(ti,tj);
-						int Aij_m = A.mb(ti,tj);
-						int Aij_n = A.nb(ti,tj);
+						double *Aij_top = A->ttop(ti,tj);
+						int Aij_m = A->mb(ti,tj);
+						int Aij_n = A->nb(ti,tj);
 
 						#pragma omp task depend(inout:Akj_top[:Akj_m*Akj_n]) \
 										 depend(inout:Aij_top[:Aij_m*Aij_n]) \
@@ -163,8 +162,13 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 				                                   Akj_top, Akj_m,
 				                                   Aij_top, Aij_m,
 				                                   Aik_top,  Aik_m,
-				                                   Tik_top,  ib,
+				                                   Tik_top,  Tik_m,
 				                                   Work,  ib);
+							if (info != PlasmaSuccess)
+							{
+								cerr << "core_dtsmqr() failed\n";
+								exit (EXIT_FAILURE);
+							}
 
 							#ifdef COUT
 							#pragma omp critical

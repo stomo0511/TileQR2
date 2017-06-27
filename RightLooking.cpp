@@ -5,7 +5,6 @@
  *      Author: stomo
  */
 
-#define DEBUG
 #define COUT
 
 #include <iostream>
