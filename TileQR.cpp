@@ -6,7 +6,7 @@
 //#define DEBUG
 
 #define DEBUG
-#define COUT
+//#define COUT
 
 #include <iostream>
 #include <cassert>
