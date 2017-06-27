@@ -6,7 +6,7 @@
 //#define DEBUG
 
 #define DEBUG
-//#define COUT
+#define COUT
 
 #include <iostream>
 #include <cassert>
@@ -141,9 +141,6 @@ int main(int argc, const char * argv[])
 	// Regenerate Q END
 	//////////////////////////////////////////////////////////////////////
 
-#ifdef COUT
-	cout << "Q end\n";
-#endif
 
 	//////////////////////////////////////////////////////////////////////
 	// Check Accuracy

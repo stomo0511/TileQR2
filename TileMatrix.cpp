@@ -199,3 +199,7 @@ void TileMatrix::Show_tile(const int ti, const int tj) const
 	}
 	cout << endl;
 }
+
+
+
+

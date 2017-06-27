@@ -5,7 +5,6 @@
  *      Author: stomo
  */
 
-#define DEBUG
 #define COUT
 
 #include <iostream>
@@ -21,10 +20,10 @@
 
 using namespace std;
 
-void tileQR( TileMatrix& A, TileMatrix& T )
+void tileQR( TileMatrix *A, TileMatrix *T )
 {
-	const int MT = A.mt();
-	const int NT = A.nt();
+	const int MT = A->mt();
+	const int NT = A->nt();
 
 	double ttime = omp_get_wtime();
 
@@ -36,16 +35,18 @@ void tileQR( TileMatrix& A, TileMatrix& T )
 		{
 			for (int tk=0; tk < min(MT,NT); tk++ )
 			{
-				double *Akk_top = A.ttop(tk,tk);
-				int Akk_m = A.mb(tk,tk);
-				int Akk_n = A.nb(tk,tk);
-				int ib = A.ib(tk,tk);
 
-				double *Tkk_top = T.ttop(tk,tk);
-				int Tkk_m = T.mb(tk,tk);
+				double *Akk_top = A->ttop(tk,tk);
+				int Akk_m = A->mb(tk,tk);
+				int Akk_n = A->nb(tk,tk);
+				int ib = A->ib();
+
+				double *Tkk_top = T->ttop(tk,tk);
+				int Tkk_m = T->mb(tk,tk);
+				int Tkk_n = T->nb(tk,tk);
 
 				#pragma omp task depend(inout:Akk_top[:Akk_m*Akk_n]) \
-								 depend(out:Tkk_top[:Tkk_m*Akk_n])
+								 depend(out:Tkk_top[:Tkk_m*Tkk_n])
 				{
 					double *Tau = new double [Akk_n];
 					double *Work = new double [Akk_n*ib];
@@ -71,20 +72,20 @@ void tileQR( TileMatrix& A, TileMatrix& T )
 
 				for (int tj=tk+1; tj < NT; tj++)
 				{
-					double *Akj_top = A.ttop(tk,tj);
-					int Akj_m = A.mb(tk,tj);
-					int Akj_n = A.nb(tk,tj);
+					double *Akj_top = A->ttop(tk,tj);
+					int Akj_m = A->mb(tk,tj);
+					int Akj_n = A->nb(tk,tj);
 
 					assert( Akk_m == Akj_m );
 
 					#pragma omp task depend(in:Akk_top[:Akk_m*Akk_n]) \
-									 depend(in:Tkk_top[:Tkk_m*Akk_n]) \
+									 depend(in:Tkk_top[:Tkk_m*Tkk_n]) \
 									 depend(inout:Akj_top[:Akj_m*Akj_n])
 					{
-						double *Work = new double [Akk_n*ib];
+						double *Work = new double [Akj_n*ib];
 
 						int info = core_dormqr( PlasmaLeft, PlasmaTrans,
-								Akk_m, Akk_n, min(Akk_m,Akk_n), ib,
+								Akj_m, Akj_n, Akk_n, ib,
 								Akk_top, Akk_m,
 								Tkk_top, Tkk_m,
 								Akj_top, Akj_m,

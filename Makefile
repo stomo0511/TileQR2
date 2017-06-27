@@ -17,7 +17,7 @@ CXXFLAGS =	-O2 -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR)
 RLOBJS =	TileMatrix.o TileQR.o Check_Accuracy.o RightLooking.o
 RTOBJS =	TileMatrix.o TileQR.o Check_Accuracy.o RightLooking_Task.o
 
-all:	RL
+all:	RL RT
 
 RL:	$(RLOBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(RLOBJS) \

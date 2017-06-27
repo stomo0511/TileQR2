@@ -5,7 +5,8 @@
  *      Author: stomo
  */
 
-//#define COUT
+#define DEBUG
+#define COUT
 
 #include <iostream>
 #include <cstdlib>
@@ -28,13 +29,12 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 	double ttime = omp_get_wtime();
 
 	//////////////////////////////////////////////////////////////////////
-	// Right Looking tile QR Task version
+	// Right Looking tile QR
 	for (int tk=0; tk < min(MT,NT); tk++ )
 	{
 		{
-			int nb = A->nb(tk,tk);
-			double *Tau = new double [nb];
-			double *Work = new double [nb*A->ib()];
+			double *Tau = new double [A->nb(tk,tk)];
+			double *Work = new double [A->nb(tk,tk)*A->ib()];
 
 			int info = core_dgeqrt( A->mb(tk,tk), A->nb(tk,tk), A->ib(),
 					A->ttop(tk,tk), A->mb(tk,tk),
@@ -58,15 +58,16 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 		#pragma omp parallel for
 		for (int tj=tk+1; tj < NT; tj++)
 		{
-			int nb = max( A->mb(tk,tk), T->mb(tk,tk) );
+			int nb = A->nb(tk,tj);
 			double *Work = new double [nb*A->ib()];
 
 			int info = core_dormqr( PlasmaLeft, PlasmaTrans,
-					A->mb(tk,tj), A->nb(tk,tj), A->nb(tk,tk), A->ib(),
+					A->mb(tk,tj), A->nb(tk,tj), min(A->mb(tk,tk),A->nb(tk,tk)), A->ib(),
 					A->ttop(tk,tk), A->mb(tk,tk),
 					T->ttop(tk,tk), T->mb(tk,tk),
 					A->ttop(tk,tj), A->mb(tk,tj),
-					Work, nb );
+					Work, nb);
+
 			if (info != PlasmaSuccess)
 			{
 				cerr << "core_dormqr() failed\n";
@@ -84,11 +85,8 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 		for (int ti=tk+1; ti < MT; ti++)
 		{
 			{
-				assert( A->nb(tk,tk) == A->nb(ti,tk) );
-
-				int nb = A->nb(ti,tk);
-				double *Tau = new double [nb];
-				double *Work = new double [nb*A->ib()];
+				double *Tau = new double [A->nb(ti,tk)];
+				double *Work = new double [A->nb(ti,tk)*A->ib()];
 
 				int info = core_dtsqrt( A->mb(ti,tk), A->nb(ti,tk), A->ib(),
 						A->ttop(tk,tk), A->mb(tk,tk),
@@ -113,9 +111,7 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 			#pragma omp parallel for
 			for (int tj=tk+1; tj < NT; tj++)
 			{
-				assert( A->nb(tk,tj) == A->nb(ti,tj) );
-
-				double *Work = new double [ A->nb(tk,tj)*A->ib()];
+				double *Work = new double [A->ib()*A->nb(tk,tj)];
 
 				int info = core_dtsmqr( PlasmaLeft, PlasmaTrans,
 						A->mb(tk,tj), A->nb(tk,tj), A->mb(ti,tj), A->nb(ti,tj), A->nb(ti,tk), A->ib(),
