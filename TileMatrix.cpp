@@ -86,7 +86,8 @@ double* TileMatrix::ttop( const int ti, const int tj ) const
 	assert( tj >= 0 && tj < nt_ );
 
 	// column major x column major
-	return top_ + ti* (mb_*nb_) + tj * (m_*nb_);
+	int nb = TileMatrix::nb(ti,tj);
+	return top_ + ti* (mb_*nb) + tj * (m_*nb_);
 }
 
 /*
@@ -198,7 +199,3 @@ void TileMatrix::Show_tile(const int ti, const int tj) const
 	}
 	cout << endl;
 }
-
-
-
-

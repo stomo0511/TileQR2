@@ -5,8 +5,7 @@
  *      Author: stomo
  */
 
-#define DEBUG
-#define COUT
+//#define COUT
 
 #include <iostream>
 #include <cstdlib>
@@ -33,14 +32,9 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 	for (int tk=0; tk < min(MT,NT); tk++ )
 	{
 		{
-			double *Tau = new double [A->nb(tk,tk)];
-			double *Work = new double [A->nb(tk,tk)*A->ib()];
-
-#ifdef COUT
-//			A->Show_all();
-			cout << "(" << tk << "," << tk << ")\n";
-			A->Show_tile(tk,tk);
-#endif
+			int nb = A->nb(tk,tk);
+			double *Tau = new double [nb];
+			double *Work = new double [nb*A->ib()];
 
 			int info = core_dgeqrt( A->mb(tk,tk), A->nb(tk,tk), A->ib(),
 					A->ttop(tk,tk), A->mb(tk,tk),
@@ -57,12 +51,6 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 			cout << omp_get_thread_num() << " : " << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
 			#endif
 
-#ifdef COUT
-			cout << "(" << tk << "," << tk << ")\n";
-			A->Show_tile(tk,tk);
-			A->Show_all();
-#endif
-
 			delete[] Tau;
 			delete[] Work;
 		}
@@ -70,15 +58,15 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 		#pragma omp parallel for
 		for (int tj=tk+1; tj < NT; tj++)
 		{
-			double *Work = new double [A->ib()*A->nb(tk,tj)];
+			int nb = max( A->mb(tk,tk), T->mb(tk,tk) );
+			double *Work = new double [nb*A->ib()];
 
 			int info = core_dormqr( PlasmaLeft, PlasmaTrans,
-					A->mb(tk,tj), A->nb(tk,tj), min(A->mb(tk,tk),A->nb(tk,tk)), A->ib(),
+					A->mb(tk,tj), A->nb(tk,tj), A->nb(tk,tk), A->ib(),
 					A->ttop(tk,tk), A->mb(tk,tk),
 					T->ttop(tk,tk), T->mb(tk,tk),
 					A->ttop(tk,tj), A->mb(tk,tj),
-					Work, A->nb(tk,tj));  // plasma-2.8.0
-//					Work, A->ib());  // plasma-17.1
+					Work, nb );
 			if (info != PlasmaSuccess)
 			{
 				cerr << "core_dormqr() failed\n";
@@ -96,8 +84,11 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 		for (int ti=tk+1; ti < MT; ti++)
 		{
 			{
-				double *Tau = new double [A->nb(ti,tk)];
-				double *Work = new double [A->nb(ti,tk)*A->ib()];
+				assert( A->nb(tk,tk) == A->nb(ti,tk) );
+
+				int nb = A->nb(ti,tk);
+				double *Tau = new double [nb];
+				double *Work = new double [nb*A->ib()];
 
 				int info = core_dtsqrt( A->mb(ti,tk), A->nb(ti,tk), A->ib(),
 						A->ttop(tk,tk), A->mb(tk,tk),
@@ -122,7 +113,9 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 			#pragma omp parallel for
 			for (int tj=tk+1; tj < NT; tj++)
 			{
-				double *Work = new double [A->ib()*A->nb(tk,tj)];
+				assert( A->nb(tk,tj) == A->nb(ti,tj) );
+
+				double *Work = new double [ A->nb(tk,tj)*A->ib()];
 
 				int info = core_dtsmqr( PlasmaLeft, PlasmaTrans,
 						A->mb(tk,tj), A->nb(tk,tj), A->mb(ti,tj), A->nb(ti,tj), A->nb(ti,tk), A->ib(),
