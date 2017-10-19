@@ -22,7 +22,6 @@ PLASMA_INC_DIR = $(PLASMA_ROOT)/include
 PLASMA_LIB_DIR = $(PLASMA_ROOT)/lib
 PLASMA_LIBS = -lcoreblas -lplasma
 #
-
 CXXFLAGS =	-fopenmp -m64 -O2 -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR)
 
 RLOBJS =	TileMatrix.o TileQR.o Check_Accuracy.o RightLooking.o
@@ -41,4 +40,4 @@ RT:	$(RTOBJS)
 				$(SBLAS_LIBS)
 
 clean:
-	rm -f $(RTOBJS)　$(RT)
+	rm -f $(RLOBJS)　$(RTOBJS)

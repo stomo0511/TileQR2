@@ -66,7 +66,6 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 					T->ttop(tk,tk), T->mb(tk,tk),
 					A->ttop(tk,tj), A->mb(tk,tj),
 					Work, nb);
-
 			if (info != PlasmaSuccess)
 			{
 				cerr << "core_dormqr() failed\n";
