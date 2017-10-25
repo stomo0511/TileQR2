@@ -22,8 +22,13 @@ PLASMA_INC_DIR = $(PLASMA_ROOT)/include
 PLASMA_LIB_DIR = $(PLASMA_ROOT)/lib
 PLASMA_LIBS = -lcoreblas -lplasma
 #
+CUDA_ROOT = /usr/local/cuda
+CUDA_INC_DIR = $(CUDA_ROOT)/include
+CUDA_LIB_DIR = $(CUDA_ROOT)/lib64
+CUDA_LIBS = -lcublas -lcudart
+#
 
-CXXFLAGS =	-fopenmp -m64 -O2 -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR)
+CXXFLAGS =	-fopenmp -m64 -O2 -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR) -I$(CUDA_INC_DIR)
 
 RLOBJS =	TileMatrix.o TileQR.o Check_Accuracy.o RightLooking.o
 RTOBJS =	TileMatrix.o TileQR.o Check_Accuracy.o RightLooking_Task.o

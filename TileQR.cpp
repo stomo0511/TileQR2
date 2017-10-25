@@ -7,6 +7,7 @@
 
 #define DEBUG
 #define COUT
+#define GPU
 
 #include <iostream>
 #include <cassert>
@@ -15,6 +16,10 @@
 
 #include <plasma.h>
 #include <core_blas.h>
+
+#ifdef GPU
+#include <core_blas.h>
+#endif
 
 #include "TileMatrix.hpp"
 #include "Check_Accuracy.hpp"
