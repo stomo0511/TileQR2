@@ -38,12 +38,14 @@ all:	RL RT
 RL:	$(RLOBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(RLOBJS) \
 				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
-				$(SBLAS_LIBS)
+				$(SBLAS_LIBS) \
+				-L$(CUDA_LIB_DIR) $(CUDA_LIBS)
 
 RT:	$(RTOBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(RTOBJS) \
 				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
-				$(SBLAS_LIBS)
+				$(SBLAS_LIBS) \
+				-L$(CUDA_LIB_DIR) $(CUDA_LIBS)
 
 clean:
 	rm -f $(RTOBJS)　$(RT)
