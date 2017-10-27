@@ -5,9 +5,9 @@
 //
 
 
-//#define DEBUG  // To check residure norm and orthogonality
-#define COUT    // To display the value of parameters
-#define GPU     // To use GPUs
+#define _DEBUG   // To check residure norm and orthogonality
+#define _COUT    // To display the value of parameters
+#define _GPU     // To use GPUs
 
 #include <iostream>
 #include <cassert>
@@ -18,7 +18,7 @@
 #include <core_blas.h>
 #include <mkl_cblas.h>
 
-#ifdef GPU
+#ifdef _GPU
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #define GDEV_NUM 1
@@ -55,7 +55,7 @@ int main(int argc, const char * argv[])
 	const int MT = A->mt();
 	const int NT = A->nt();
 	
-	#ifdef COUT
+	#ifdef _COUT
 	cout << "M = " << M << ", N = " << N << ", NB = " << NB << ", IB = " << IB;
 	cout << ", MT = " << MT << ", NT = " << NT << endl;
 	#endif
@@ -66,7 +66,7 @@ int main(int argc, const char * argv[])
 	// Initialize matrix A
 	A->Set_Rnd( 20170621 );
 
-	#ifdef DEBUG
+	#ifdef _DEBUG
 	// Copy the elements of TMatrix class A to double array mA
 	double *mA = new double [ M*N ];
 	for (int i=0; i<M; i++)
@@ -74,98 +74,6 @@ int main(int argc, const char * argv[])
 			mA[ i+j*M ] = A->Get_Val(i,j);
 	#endif
 	// End of Definitions and Initialize
-
-	////////////////////////////////////////////////////////////////////////////
-	// Setting up GPUs
-	#ifdef GPU
-	cudaError_t	cuda_stat;
-
-	cudaSetDevice(GDEV_ID);
-
-	// Allocate device memory for Trailing matrix update
-	double **dAkj  = new double*[NT];
-	double **dAij  = new double*[NT];
-	double **dWork = new double*[NT];
-
-	for(int j=0; j<NT; j++)
-	{
-		cuda_stat = cudaMalloc( (void**) &dAkj[j], sizeof(double)*NB*NB );
-		if( cuda_stat != cudaSuccess ){
-			cerr << "Device memory allocate failure for dAkj[" << j << "]\n";
-			return EXIT_FAILURE;
-		}
-
-		cuda_stat = cudaMalloc( (void**) &dAij[j], sizeof(double)*NB*NB );
-		if( cuda_stat != cudaSuccess )
-		{
-			cerr << "Device memory allocate failure for dAij[" << j << "]\n";
-			return EXIT_FAILURE;
-		}
-
-		cuda_stat = cudaMalloc( (void**) &dWork[j], sizeof(double)*IB*NB );
-		if( cuda_stat != cudaSuccess )
-		{
-			cerr << "Device memory allocate failure for dwork[" << j << "]\n";
-			return EXIT_FAILURE;
-		}
-	}
-
-	// Allocate device memory for Translation matrix
-	double **dAkk = new double*[MT];
-	double **dTkk = new double*[MT];
-
-	for(int i=0; i<MT; i++)
-	{
-		cuda_stat = cudaMalloc( (void**) &dAkk[i], sizeof(double)*NB*NB );
-		if( cuda_stat != cudaSuccess )
-		{
-			cerr << "Device memory allocate failure for dAkk[" << i << "]\n";
-			return EXIT_FAILURE;
-		}
-
-		cuda_stat = cudaMalloc( (void**) &dTkk[i], sizeof(double)*IB*NB );
-		if( cuda_stat != cudaSuccess )
-		{
-			cerr << "Device memory allocate failure for dTkk[" << i << "]\n";
-			return EXIT_FAILURE;
-		}
-	}
-
-	cublasStatus_t	cublas_stat;
-	cublasHandle_t *cublas_handle = new cublasHandle_t[NT];
-	cudaStream_t   *cuda_stream   = new cudaStream_t[NT];
-
-	// Create CUBLAS handle
-	for (int j=0; j<NT; j++)
-	{
-		cublas_stat = cublasCreate(&cublas_handle[j]);
-		if ( cublas_stat != CUBLAS_STATUS_SUCCESS)
-		{
-			cerr << j << "-th CUBLAS initialization failed\n";
-			return EXIT_FAILURE;
-		}
-	}
-
-	// Create CUBLAS stream
-	for(int j=0; j<NT; j++)
-	{
-		cuda_stat = cudaStreamCreate(&cuda_stream[j]);
-		if( cuda_stat != cudaSuccess )
-		{
-			cerr << "Stream create failure for stream[" << j << "]\n";
-			return EXIT_FAILURE;
-		}
-
-		cublas_stat = cublasSetStream( cublas_handle[j], cuda_stream[j]);
-		if ( cublas_stat != CUBLAS_STATUS_SUCCESS)
-		{
-			cerr << j << "-th cublasSetStream failed\n";
-			return EXIT_FAILURE;
-		}
-	}
-	#endif
-	// End of device memory allocateion and stream creation
-	////////////////////////////////////////////////////////////////////////////
 
 	// Timer start
 	double time = omp_get_wtime();
@@ -179,7 +87,7 @@ int main(int argc, const char * argv[])
 	time = omp_get_wtime() - time;
 	cout << M << ", " << NB << ", " << IB << ", " << time << endl;
 	
-	#ifdef DEBUG
+	#ifdef _DEBUG
 	////////////////////////////////////////////////////////////////////////////
 	// Regenerate Q
 	TileMatrix *Q = new TileMatrix(M,M,NB,NB,IB);
@@ -270,26 +178,6 @@ int main(int argc, const char * argv[])
 
 	delete A;
 	delete T;
-
-	//////////////////////////////////////////////////////////////////////
-	#ifdef GPU
-	for(int j=0; j<NT; j++)
-	{
-		cudaFree(dAkj[j]);
-		cudaFree(dAij[j]);
-		cudaFree(dWork[j]);
-	}
-
-	for(int i=0; i<MT; ++i)
-	{
-		cudaFree(dTkk[i]);
-		cudaFree(dAkk[i]);
-	}
-
-	delete [] cublas_handle;
-	delete [] cuda_stream;
-	#endif
-	//////////////////////////////////////////////////////////////////////
 
 	return EXIT_SUCCESS;
 }
