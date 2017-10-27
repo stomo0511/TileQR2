@@ -39,6 +39,7 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 	////////////////////////////////////////////////////////////////////////////
 	cudaError_t	    cuda_stat;
 	cublasStatus_t	cublas_stat;
+	cublasHandle_t *handle = new cublasHandle_t[NT];
 
 	// Initialize GPU
 	cudaSetDevice(GDEV_ID);
@@ -61,26 +62,39 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 	}
 
 	// Allocate device memory for Trailing matrix update
-	double *dAkj, *dAij, *dWork;
+	double **dAkj  = new double*[NT];
+	double **dAij  = new double*[NT];
+	double **dWork = new double*[NT];
 
-	cuda_stat = cudaMalloc( (void**) &dAkj, sizeof(double)*NB*NB );
-	if( cuda_stat != cudaSuccess ){
-		cerr << "Device memory allocate failure for dAkj\n";
-		exit(EXIT_FAILURE);
-	}
-
-	cuda_stat = cudaMalloc( (void**) &dAij, sizeof(double)*NB*NB );
-	if( cuda_stat != cudaSuccess )
+	for (int j=0; j<NT; j++)
 	{
-		cerr << "Device memory allocate failure for dAij\n";
-		exit(EXIT_FAILURE);
-	}
+		cuda_stat = cudaMalloc( (void**) &dAkj[j], sizeof(double)*NB*NB );
+		if( cuda_stat != cudaSuccess ){
+			cerr << "Device memory allocate failure for dAkj[" << j << "]\n";
+			exit(EXIT_FAILURE);
+		}
 
-	cuda_stat = cudaMalloc( (void**) &dWork, sizeof(double)*IB*NB );
-	if( cuda_stat != cudaSuccess )
-	{
-		cerr << "Device memory allocate failure for dWork\n";
-		exit(EXIT_FAILURE);
+		cuda_stat = cudaMalloc( (void**) &dAij[j], sizeof(double)*NB*NB );
+		if( cuda_stat != cudaSuccess )
+		{
+			cerr << "Device memory allocate failure for dAij[" << j << "]\n";
+			exit(EXIT_FAILURE);
+		}
+
+		cuda_stat = cudaMalloc( (void**) &dWork[j], sizeof(double)*IB*NB );
+		if( cuda_stat != cudaSuccess )
+		{
+			cerr << "Device memory allocate failure for dWork[" << j << "\n";
+			exit(EXIT_FAILURE);
+		}
+
+		cublas_stat = cublasCreate(&handle[j]);
+		if( cublas_stat != CUBLAS_STATUS_SUCCESS)
+		{
+			cerr << j << "-th CUDA handle initialize failure\n";
+			cublasDestroy(handle[j]);
+			exit(EXIT_FAILURE);
+		}
 	}
 	////////////////////////////////////////////////////////////////////////////
 
@@ -211,9 +225,13 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 	cudaFree(dTkk);
 	cudaFree(dAkk);
 
-	cudaFree(dAkj);
-	cudaFree(dAij);
-	cudaFree(dWork);
+	for (int j=0; j<NT; j++)
+	{
+		cudaFree(dAkj[j]);
+		cudaFree(dAij[j]);
+		cudaFree(dWork[j]);
+		cublasDestroy(handle[j]);
+	}
 	//////////////////////////////////////////////////////////////////////
 	// Right Looking tile QR END
 	//////////////////////////////////////////////////////////////////////
