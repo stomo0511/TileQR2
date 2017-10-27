@@ -3,10 +3,11 @@
  *
  *  Created on: 2017/10/27
  *      Author: stomo
+ *
+ *  *** Single Stream Version ***
  */
 
 #define _COUT
-#define _GPU
 
 #include <iostream>
 #include <cstdlib>
@@ -17,12 +18,10 @@
 #include <plasma.h>
 #include <core_blas.h>
 
-#ifdef _GPU
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #define GDEV_NUM 1
 #define GDEV_ID  1
-#endif
 
 #include "TileMatrix.hpp"
 
@@ -38,93 +37,52 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 	assert(NB == A->nb(0,0));
 
 	////////////////////////////////////////////////////////////////////////////
-	#ifdef _GPU
 	cudaError_t	    cuda_stat;
 	cublasStatus_t	cublas_stat;
-	cublasHandle_t *cublas_handle = new cublasHandle_t[NT];
-	cudaStream_t   *cuda_stream   = new cudaStream_t[NT];
 
 	// Initialize GPU
 	cudaSetDevice(GDEV_ID);
 
-	// Allocate device memory for Trailing matrix update
-	double **dAkj  = new double*[NT];
-	double **dAij  = new double*[NT];
-	double **dWork = new double*[NT];
-
-	for(int j=0; j<NT; j++)
-	{
-		cuda_stat = cudaMalloc( (void**) &dAkj[j], sizeof(double)*NB*NB );
-		if( cuda_stat != cudaSuccess ){
-			cerr << "Device memory allocate failure for dAkj[" << j << "]\n";
-			exit(EXIT_FAILURE);
-		}
-
-		cuda_stat = cudaMalloc( (void**) &dAij[j], sizeof(double)*NB*NB );
-		if( cuda_stat != cudaSuccess )
-		{
-			cerr << "Device memory allocate failure for dAij[" << j << "]\n";
-			exit(EXIT_FAILURE);
-		}
-
-		cuda_stat = cudaMalloc( (void**) &dWork[j], sizeof(double)*IB*NB );
-		if( cuda_stat != cudaSuccess )
-		{
-			cerr << "Device memory allocate failure for dwork[" << j << "]\n";
-			exit(EXIT_FAILURE);
-		}
-	}
-
 	// Allocate device memory for Translation matrix
-	double **dAkk = new double*[MT];
-	double **dTkk = new double*[MT];
+	double *dAkk, *dTkk;
 
-	for(int i=0; i<MT; i++)
+	cuda_stat = cudaMalloc( (void**) &dAkk, sizeof(double)*NB*NB );
+	if( cuda_stat != cudaSuccess )
 	{
-		cuda_stat = cudaMalloc( (void**) &dAkk[i], sizeof(double)*NB*NB );
-		if( cuda_stat != cudaSuccess )
-		{
-			cerr << "Device memory allocate failure for dAkk[" << i << "]\n";
-			exit(EXIT_FAILURE);
-		}
-
-		cuda_stat = cudaMalloc( (void**) &dTkk[i], sizeof(double)*IB*NB );
-		if( cuda_stat != cudaSuccess )
-		{
-			cerr << "Device memory allocate failure for dTkk[" << i << "]\n";
-			exit(EXIT_FAILURE);
-		}
+		cerr << "Device memory allocate failure for dAkk\n";
+		exit(EXIT_FAILURE);
 	}
 
-	// Create CUBLAS handle
-	for (int j=0; j<NT; j++)
+	cuda_stat = cudaMalloc( (void**) &dTkk, sizeof(double)*IB*NB );
+	if( cuda_stat != cudaSuccess )
 	{
-		cublas_stat = cublasCreate(&cublas_handle[j]);
-		if ( cublas_stat != CUBLAS_STATUS_SUCCESS)
-		{
-			cerr << j << "-th CUBLAS initialization failed\n";
-			exit(EXIT_FAILURE);
-		}
+		cerr << "Device memory allocate failure for dTkk\n";
+		exit(EXIT_FAILURE);
 	}
 
-	// Create CUBLAS stream
-	for(int j=0; j<NT; j++)
-	{
-		cuda_stat = cudaStreamCreate(&cuda_stream[j]);
-		if( cuda_stat != cudaSuccess )
-		{
-			cerr << "Stream create failure for stream[" << j << "]\n";
-			exit(EXIT_FAILURE);
-		}
+	// Allocate device memory for Trailing matrix update
+	double *dAkj, *dAij, *dWork;
 
-		cublas_stat = cublasSetStream( cublas_handle[j], cuda_stream[j]);
-		if ( cublas_stat != CUBLAS_STATUS_SUCCESS)
-		{
-			cerr << j << "-th cublasSetStream failed\n";
-			exit(EXIT_FAILURE);
-		}
+	cuda_stat = cudaMalloc( (void**) &dAkj, sizeof(double)*NB*NB );
+	if( cuda_stat != cudaSuccess ){
+		cerr << "Device memory allocate failure for dAkj\n";
+		exit(EXIT_FAILURE);
 	}
-	#endif
+
+	cuda_stat = cudaMalloc( (void**) &dAij, sizeof(double)*NB*NB );
+	if( cuda_stat != cudaSuccess )
+	{
+		cerr << "Device memory allocate failure for dAij\n";
+		exit(EXIT_FAILURE);
+	}
+
+	cuda_stat = cudaMalloc( (void**) &dWork, sizeof(double)*IB*NB );
+	if( cuda_stat != cudaSuccess )
+	{
+		cerr << "Device memory allocate failure for dWork\n";
+		exit(EXIT_FAILURE);
+	}
+	////////////////////////////////////////////////////////////////////////////
 
 	double ttime = omp_get_wtime();
 
@@ -132,6 +90,9 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 	// Right Looking tile QR
 	for (int tk=0; tk < min(MT,NT); tk++ )
 	{
+		//
+		// GEQRT part
+		//
 		{
 			double *Tau = new double [A->nb(tk,tk)];
 			double *Work = new double [A->nb(tk,tk)*A->ib()];
@@ -156,17 +117,12 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 			delete[] Work;
 		}
 
-		cublas_stat[sid_k] =
-				cublasSetMatrixAsync( Akk_m, Akk_n, sizeof(double),
-						Akk, Akk_m,
-						dAkk[sid_k], Akk_m, stream[sid_k]);
-		if( cublas_stat[sid_k] != CUBLAS_STATUS_SUCCESS)
+		//
+		// Set the elements of dAkk, dTkk
+		//
 		{
-			cout << "dAkkの転送失敗" << endl;
-			cublasDestroy(handle[sid_k]);
+
 		}
-		//同期を使うので，無理に非同期にする必要はないかも
-		cudaStreamSynchronize(stream[sid_k]);
 
 		for (int tj=tk+1; tj < NT; tj++)
 		{
@@ -252,23 +208,12 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 	} // k-LOOP END
 
 	//////////////////////////////////////////////////////////////////////
-	#ifdef _GPU
-	for(int j=0; j<NT; j++)
-	{
-		cudaFree(dAkj[j]);
-		cudaFree(dAij[j]);
-		cudaFree(dWork[j]);
-	}
+	cudaFree(dTkk);
+	cudaFree(dAkk);
 
-	for(int i=0; i<MT; ++i)
-	{
-		cudaFree(dTkk[i]);
-		cudaFree(dAkk[i]);
-	}
-
-	delete [] cublas_handle;
-	delete [] cuda_stream;
-	#endif
+	cudaFree(dAkj);
+	cudaFree(dAij);
+	cudaFree(dWork);
 	//////////////////////////////////////////////////////////////////////
 	// Right Looking tile QR END
 	//////////////////////////////////////////////////////////////////////
