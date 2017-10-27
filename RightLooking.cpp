@@ -32,6 +32,10 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 {
 	const int MT = A->mt();
 	const int NT = A->nt();
+	const int NB = A->mb(0,0);
+	const int IB = A->ib();
+
+	assert(NB == A->nb(0,0));
 
 	#ifdef _GPU
 	cudaError_t	    cuda_stat;
@@ -51,21 +55,21 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 		cuda_stat = cudaMalloc( (void**) &dAkj[j], sizeof(double)*NB*NB );
 		if( cuda_stat != cudaSuccess ){
 			cerr << "Device memory allocate failure for dAkj[" << j << "]\n";
-			return EXIT_FAILURE;
+			exit(EXIT_FAILURE);
 		}
 
 		cuda_stat = cudaMalloc( (void**) &dAij[j], sizeof(double)*NB*NB );
 		if( cuda_stat != cudaSuccess )
 		{
 			cerr << "Device memory allocate failure for dAij[" << j << "]\n";
-			return EXIT_FAILURE;
+			exit(EXIT_FAILURE);
 		}
 
 		cuda_stat = cudaMalloc( (void**) &dWork[j], sizeof(double)*IB*NB );
 		if( cuda_stat != cudaSuccess )
 		{
 			cerr << "Device memory allocate failure for dwork[" << j << "]\n";
-			return EXIT_FAILURE;
+			exit(EXIT_FAILURE);
 		}
 	}
 
@@ -79,14 +83,14 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 		if( cuda_stat != cudaSuccess )
 		{
 			cerr << "Device memory allocate failure for dAkk[" << i << "]\n";
-			return EXIT_FAILURE;
+			exit(EXIT_FAILURE);
 		}
 
 		cuda_stat = cudaMalloc( (void**) &dTkk[i], sizeof(double)*IB*NB );
 		if( cuda_stat != cudaSuccess )
 		{
 			cerr << "Device memory allocate failure for dTkk[" << i << "]\n";
-			return EXIT_FAILURE;
+			exit(EXIT_FAILURE);
 		}
 	}
 
