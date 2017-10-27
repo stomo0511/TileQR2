@@ -78,7 +78,7 @@ int main(int argc, const char * argv[])
 	////////////////////////////////////////////////////////////////////////////
 	// Setting up GPUs
 	#ifdef GPU
-	cudaError_t		cuda_stat;
+	cudaError_t	cuda_stat;
 
 	cudaSetDevice(GDEV_ID);
 

@@ -5,7 +5,7 @@
  *      Author: stomo
  */
 
-//#define COUT
+#define COUT
 
 #include <iostream>
 #include <cstdlib>
