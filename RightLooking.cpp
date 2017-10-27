@@ -37,12 +37,14 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 
 	assert(NB == A->nb(0,0));
 
+	////////////////////////////////////////////////////////////////////////////
 	#ifdef _GPU
 	cudaError_t	    cuda_stat;
 	cublasStatus_t	cublas_stat;
 	cublasHandle_t *cublas_handle = new cublasHandle_t[NT];
 	cudaStream_t   *cuda_stream   = new cudaStream_t[NT];
 
+	// Initialize GPU
 	cudaSetDevice(GDEV_ID);
 
 	// Allocate device memory for Trailing matrix update

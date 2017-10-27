@@ -18,13 +18,6 @@
 #include <core_blas.h>
 #include <mkl_cblas.h>
 
-#ifdef _GPU
-#include <cuda_runtime.h>
-#include <cublas_v2.h>
-#define GDEV_NUM 1
-#define GDEV_ID  1
-#endif
-
 #include "TileMatrix.hpp"
 #include "Check_Accuracy.hpp"
 
