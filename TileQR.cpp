@@ -3,11 +3,11 @@
 //
 //  Created by T. Suzuki on 2017/06/21.
 //
-//#define DEBUG
+
 
 //#define DEBUG  // To check residure norm and orthogonality
-#define COUT   // To display the value of parameters
-#define GPU    // To use GPUs
+#define COUT    // To display the value of parameters
+#define GPU     // To use GPUs
 
 #include <iostream>
 #include <cassert>
