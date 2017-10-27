@@ -31,12 +31,18 @@ CUDA_LIBS = -lcublas -lcudart
 CXXFLAGS =	-fopenmp -m64 -O2 -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR) -I$(CUDA_INC_DIR)
 
 RLOBJS =	TileMatrix.o TileQR.o Check_Accuracy.o RightLooking.o
+GRLOBJS =	TileMatrix.o TileQR.o Check_Accuracy.o GPURightLooking.o
 RTOBJS =	TileMatrix.o TileQR.o Check_Accuracy.o RightLooking_Task.o
 
-all:	RL RT
+all:	RL GRL RT
 
 RL:	$(RLOBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(RLOBJS) \
+				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
+				$(SBLAS_LIBS)
+
+GRL:	$(GRLOBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(GRLOBJS) \
 				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
 				$(SBLAS_LIBS) \
 				-L$(CUDA_LIB_DIR) $(CUDA_LIBS)
@@ -44,8 +50,7 @@ RL:	$(RLOBJS)
 RT:	$(RTOBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(RTOBJS) \
 				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
-				$(SBLAS_LIBS) \
-				-L$(CUDA_LIB_DIR) $(CUDA_LIBS)
+				$(SBLAS_LIBS)
 
 clean:
 	rm -f $(RTOBJS)　$(RT)
