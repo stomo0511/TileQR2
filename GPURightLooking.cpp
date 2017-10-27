@@ -131,6 +131,7 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 			delete[] Work;
 		}
 
+		//////// HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE
 		//
 		// Set the elements of dAkk, dTkk
 		//
