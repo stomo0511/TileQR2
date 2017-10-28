@@ -34,60 +34,21 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 	const int NB = A->mb(0,0);
 	const int IB = A->ib();
 
+	// Assume that tile is square
 	assert(NB == A->nb(0,0));
-
-	////////////////////////////////////////////////////////////////////////////
-	cudaError_t	    cuda_stat;
-	cublasStatus_t	cublas_stat;
-	cublasHandle_t *handle = new cublasHandle_t[NT];
 
 	// Initialize GPU
 	cudaSetDevice(GDEV_ID);
 
-	// Allocate device memory for Translation matrix
-	double *dAkk, *dTkk;
+	////////////////////////////////////////////////////////////////////////////
+	cudaError_t	    cuda_stat;
+//	cudaStream_t   *stream = new cudaStream_t[NT];
+	cublasStatus_t	cublas_stat;
+	cublasHandle_t *handle = new cublasHandle_t[NT];
 
-	cuda_stat = cudaMalloc( (void**) &dAkk, sizeof(double)*NB*NB );
-	if( cuda_stat != cudaSuccess )
-	{
-		cerr << "Device memory allocate failure for dAkk\n";
-		exit(EXIT_FAILURE);
-	}
-
-	cuda_stat = cudaMalloc( (void**) &dTkk, sizeof(double)*IB*NB );
-	if( cuda_stat != cudaSuccess )
-	{
-		cerr << "Device memory allocate failure for dTkk\n";
-		exit(EXIT_FAILURE);
-	}
-
-	// Allocate device memory for Trailing matrix update
-	double **dAkj  = new double*[NT];
-	double **dAij  = new double*[NT];
-	double **dWork = new double*[NT];
-
+	// Create device handler
 	for (int j=0; j<NT; j++)
 	{
-		cuda_stat = cudaMalloc( (void**) &dAkj[j], sizeof(double)*NB*NB );
-		if( cuda_stat != cudaSuccess ){
-			cerr << "Device memory allocate failure for dAkj[" << j << "]\n";
-			exit(EXIT_FAILURE);
-		}
-
-		cuda_stat = cudaMalloc( (void**) &dAij[j], sizeof(double)*NB*NB );
-		if( cuda_stat != cudaSuccess )
-		{
-			cerr << "Device memory allocate failure for dAij[" << j << "]\n";
-			exit(EXIT_FAILURE);
-		}
-
-		cuda_stat = cudaMalloc( (void**) &dWork[j], sizeof(double)*IB*NB );
-		if( cuda_stat != cudaSuccess )
-		{
-			cerr << "Device memory allocate failure for dWork[" << j << "\n";
-			exit(EXIT_FAILURE);
-		}
-
 		cublas_stat = cublasCreate(&handle[j]);
 		if( cublas_stat != CUBLAS_STATUS_SUCCESS)
 		{
@@ -96,11 +57,47 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 			exit(EXIT_FAILURE);
 		}
 	}
+
+	// Allocate device memory
+	double **dAk, **dAi, **dWork, *dT;
+
+	for (int j=0; j<NT; j++)
+	{
+		cout << "here 0\n";
+		cuda_stat = cudaMalloc( (void**) &dAk[j], sizeof(double)*NB*NB );
+		if( cuda_stat != cudaSuccess )
+		{
+			cerr << "Device memory allocate failure for dAk[" << j << "]\n";
+			exit(EXIT_FAILURE);
+		}
+
+		cout << "here 1\n";
+		cuda_stat = cudaMalloc( (void**) &dAi[j], sizeof(double)*NB*NB );
+		if( cuda_stat != cudaSuccess )
+		{
+			cerr << "Device memory allocate failure for dAi[" << j << "]\n";
+			exit(EXIT_FAILURE);
+		}
+
+		cuda_stat = cudaMalloc( (void**) &dWork[j], sizeof(double)*IB*NB );
+		if( cuda_stat != cudaSuccess )
+		{
+			cerr << "Device memory allocate failure for dWork[" << j << "]\n";
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	cuda_stat = cudaMalloc( (void**) &dT, sizeof(double)*IB*NB );
+	if( cuda_stat != cudaSuccess )
+	{
+		cerr << "Device memory allocate failure for dT\n";
+		exit(EXIT_FAILURE);
+	}
 	////////////////////////////////////////////////////////////////////////////
 
 	double ttime = omp_get_wtime();
 
-	//////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////
 	// Right Looking tile QR
 	for (int tk=0; tk < min(MT,NT); tk++ )
 	{
@@ -131,16 +128,49 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 			delete[] Work;
 		}
 
-		//////// HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE HERE
 		//
-		// Set the elements of dAkk, dTkk
+		// Set elements data of dAk[k]
 		//
 		{
-
+			cublas_stat = cublasSetMatrix( A->mb(tk,tk), A->nb(tk,tk), sizeof(double),
+					A->ttop(tk,tk), A->mb(tk,tk), dAk[tk], A->mb(tk,tk) );
+			if( cublas_stat != CUBLAS_STATUS_SUCCESS)
+			{
+				cerr << "Data copy to dAk[k] failure\n";
+				exit(EXIT_FAILURE);
+			}
+		}
+		//
+		// Set elements data of dT
+		//
+		{
+			cublas_stat = cublasSetMatrix( T->mb(tk,tk), T->nb(tk,tk), sizeof(double),
+					T->ttop(tk,tk), T->mb(tk,tk), dT, T->mb(tk,tk) );
+			if( cublas_stat != CUBLAS_STATUS_SUCCESS)
+			{
+				cerr << "Data copy to dT failure (GEQRT)\n";
+				exit(EXIT_FAILURE);
+			}
 		}
 
 		for (int tj=tk+1; tj < NT; tj++)
 		{
+			//
+			// Send elements data to dAk[j]
+			//
+			{
+				cublas_stat = cublasSetMatrix( A->mb(tk,tj), A->nb(tk,tj), sizeof(double),
+						A->ttop(tk,tj), A->mb(tk,tj), dAk[tj], A->mb(tk,tj) );
+				if( cublas_stat != CUBLAS_STATUS_SUCCESS)
+				{
+					cerr << "Data copy to dAk[" << tj << "] failure\n";
+					exit(EXIT_FAILURE);
+				}
+			}
+
+			//
+			// LARFB part
+			//
 			int nb = A->nb(tk,tj);
 			double *Work = new double [nb*A->ib()];
 
@@ -168,6 +198,9 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 
 		for (int ti=tk+1; ti < MT; ti++)
 		{
+			//
+			// TSQRT part
+			//
 			{
 				double *Tau = new double [A->nb(ti,tk)];
 				double *Work = new double [A->nb(ti,tk)*A->ib()];
@@ -193,8 +226,49 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 				delete[] Work;
 			}
 
+			//
+			// Set elements data of dAi[k]
+			//
+			{
+				cublas_stat = cublasSetMatrix( A->mb(ti,tk), A->nb(ti,tk), sizeof(double),
+						A->ttop(ti,tk), A->mb(ti,tk), dAi[tk], A->mb(ti,tk) );
+				if( cublas_stat != CUBLAS_STATUS_SUCCESS)
+				{
+					cerr << "Data copy to dAi[k] failure\n";
+					exit(EXIT_FAILURE);
+				}
+			}
+			//
+			// Set elements data of dT
+			//
+			{
+				cublas_stat = cublasSetMatrix( T->mb(ti,tk), T->nb(ti,tk), sizeof(double),
+						T->ttop(ti,tk), T->mb(ti,tk), dT, T->mb(ti,tk) );
+				if( cublas_stat != CUBLAS_STATUS_SUCCESS)
+				{
+					cerr << "Data copy to dT failure (TSQRT)\n";
+					exit(EXIT_FAILURE);
+				}
+			}
+
 			for (int tj=tk+1; tj < NT; tj++)
 			{
+				//
+				// Send elements data to dAi[j]
+				//
+				{
+					cublas_stat = cublasSetMatrix( A->mb(ti,tj), A->nb(ti,tj), sizeof(double),
+							A->ttop(ti,tj), A->mb(ti,tj), dAi[tj], A->mb(ti,tj) );
+					if( cublas_stat != CUBLAS_STATUS_SUCCESS)
+					{
+						cerr << "Data copy to dAi[" << tj << "] failure\n";
+						exit(EXIT_FAILURE);
+					}
+				}
+
+				//
+				// SSRFB part
+				//
 				double *Work = new double [A->ib()*A->nb(tk,tj)];
 
 				int info = core_dtsmqr( PlasmaLeft, PlasmaTrans,
@@ -218,21 +292,43 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 
 				delete[] Work;
 
+				//
+				// Send elements data of dAk[j] back
+				//
+				{
+					cublas_stat = cublasGetMatrix( A->mb(tk,tj), A->nb(tk,tj), sizeof(double),
+							dAk[tj], A->mb(tk,tj), A->ttop(tk,tj), A->mb(tk,tj) );
+					if( cublas_stat != CUBLAS_STATUS_SUCCESS)
+					{
+						cerr << "Data copy to Akj failure\n";
+						exit(EXIT_FAILURE);
+					}
+				}
+				//
+				// Send elements data of dAi[j] back
+				//
+				{
+					cublas_stat = cublasGetMatrix( A->mb(ti,tj), A->nb(ti,tj), sizeof(double),
+							dAi[tj], A->mb(ti,tj), A->ttop(ti,tj), A->mb(ti,tj) );
+					if( cublas_stat != CUBLAS_STATUS_SUCCESS)
+					{
+						cerr << "Data copy to Aij failure\n";
+						exit(EXIT_FAILURE);
+					}
+				}
 			} // j-LOOP END
 		} // i-LOOP END
 	} // k-LOOP END
 
 	//////////////////////////////////////////////////////////////////////
-	cudaFree(dTkk);
-	cudaFree(dAkk);
-
 	for (int j=0; j<NT; j++)
 	{
-		cudaFree(dAkj[j]);
-		cudaFree(dAij[j]);
+		cudaFree(dAk[j]);
+		cudaFree(dAi[j]);
 		cudaFree(dWork[j]);
 		cublasDestroy(handle[j]);
 	}
+	cudaFree(dT);
 	//////////////////////////////////////////////////////////////////////
 	// Right Looking tile QR END
 	//////////////////////////////////////////////////////////////////////
