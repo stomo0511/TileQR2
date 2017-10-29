@@ -5,7 +5,7 @@
  *      Author: stomo
  */
 
-//#define COUT
+#define COUT_
 
 #include <iostream>
 #include <cstdlib>
@@ -24,6 +24,18 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 {
 	const int MT = A->mt();
 	const int NT = A->nt();
+	const int NB = A->mb(0,0);
+	const int IB = A->ib();
+
+	int thds = omp_get_max_threads();
+	double **Work = new double*[thds];
+	double **Tau  = new double*[thds];
+
+	for (int i=0; i<thds; i++)
+	{
+		Work[i] = new double[NB*IB];
+		Tau[i]  = new double[NB];
+	}
 
 	double ttime = omp_get_wtime();
 
@@ -49,26 +61,27 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 				#pragma omp task depend(inout:Akk_top[:Akk_m*Akk_n]) \
 								 depend(out:Tkk_top[:Tkk_m*Tkk_n])
 				{
-					double *Tau = new double [Akk_n];
-					double *Work = new double [Akk_n*ib];
+					//double *Tau = new double [Akk_n];
+					//double *Work = new double [Akk_n*ib];
+					int tid = omp_get_num_threads();
 
 					int info = core_dgeqrt( Akk_m, Akk_n, ib,
 							Akk_top, Akk_m,
 							Tkk_top, Tkk_m,
-							Tau, Work );
+							Tau[tid], Work[tid] );
 					if (info != PlasmaSuccess)
 					{
 						cerr << "core_dgeqrt() failed\n";
 						exit (EXIT_FAILURE);
 					}
 
-					#ifdef COUT
+					#ifdef COUT_
 					#pragma omp critical
 					cout << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 					#endif
 
-					delete[] Tau;
-					delete[] Work;
+					//delete[] Tau;
+					//delete[] Work;
 
 				}
 				////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -87,26 +100,27 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 									 depend(in:Tkk_top[:Tkk_m*Tkk_n]) \
 									 depend(inout:Akj_top[:Akj_m*Akj_n])
 					{
-						double *Work = new double [Akj_n*ib];
+						//double *Work = new double [Akj_n*ib];
+						int tid = omp_get_num_threads();
 
 						int info = core_dormqr( PlasmaLeft, PlasmaTrans,
 								Akj_m, Akj_n, min(Akk_m,Akk_n), ib,
 								Akk_top, Akk_m,
 								Tkk_top, Tkk_m,
 								Akj_top, Akj_m,
-								Work, Akj_n);
+								Work[tid], Akj_n);
 						if (info != PlasmaSuccess)
 						{
 							cerr << "core_dormqr() failed\n";
 							exit (EXIT_FAILURE);
 						}
 
-						#ifdef COUT
+						#ifdef COUT_
 						#pragma omp critical
 						cout << "LARFB(" << tk << "," << tj << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 						#endif
 
-						delete[] Work;
+						//delete[] Work;
 					}
 					////////////////////////////////////////////////////////////////////////////////////////////////////////
 				}
@@ -126,27 +140,28 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 									 depend(inout:Aik_top[:Aik_m*Aik_n]) \
 									 depend(out:Tik_top[:Tik_m*Aik_n])
 					{
-						double *Tau = new double [Aik_n];
-						double *Work = new double [Aik_n*ib];
+						//double *Tau = new double [Aik_n];
+						//double *Work = new double [Aik_n*ib];
+						int tid = omp_get_num_threads();
 
 						int info = core_dtsqrt( Aik_m, Aik_n, ib,
 						                Akk_top, Akk_m,
 						                Aik_top, Aik_m,
 						                Tik_top, Tik_m,
-						                Tau, Work);
+						                Tau[tid], Work[tid]);
 						if (info != PlasmaSuccess)
 						{
 							cerr << "core_dtsqrt() failed\n";
 							exit (EXIT_FAILURE);
 						}
 
-						#ifdef COUT
+						#ifdef COUT_
 						#pragma omp critical
 						cout << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 						#endif
 
-						delete[] Tau;
-						delete[] Work;
+						//delete[] Tau;
+						//delete[] Work;
 					}
 					////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -167,7 +182,8 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 										 depend(in:Aik_top[:Aik_m*Aik_n]) \
 										 depend(in:Tik_top[:Tik_m*Aik_n])
 						{
-							double *Work = new double [Akj_n*ib];
+							//double *Work = new double [Akj_n*ib];
+							int tid = omp_get_num_threads();
 
 							int info = core_dtsmqr( PlasmaLeft, PlasmaTrans,
 				                                   Akj_m, Akj_n, Aij_m, Aij_n, Aik_n, ib,
@@ -175,19 +191,19 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 				                                   Aij_top, Aij_m,
 				                                   Aik_top,  Aik_m,
 				                                   Tik_top,  Tik_m,
-				                                   Work,  ib);
+				                                   Work[tid],  ib);
 							if (info != PlasmaSuccess)
 							{
 								cerr << "core_dtsmqr() failed\n";
 								exit (EXIT_FAILURE);
 							}
 
-							#ifdef COUT
+							#ifdef COUT_
 							#pragma omp critical
 							cout << "SSRFB(" << ti << "," << tj << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 							#endif
 
-							delete[] Work;
+							//delete[] Work;
 						}
 						////////////////////////////////////////////////////////////////////////////////////////////////////////
 					} // j-LOOP END
@@ -198,4 +214,9 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 	// Right Looking tile QR END
 	//////////////////////////////////////////////////////////////////////
 
+	for (int i=0; i<thds; i++)
+	{
+		delete [] Work[i];
+		delete [] Tau[i];
+	}
 }
