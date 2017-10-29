@@ -59,11 +59,13 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 	}
 
 	// Allocate device memory
-	double **dAk, **dAi, **dWork, *dT;
+	double **dAk   = new double*[NT];
+	double **dAi   = new double*[NT];
+	double **dWork = new double*[NT];
+	double  *dT;
 
 	for (int j=0; j<NT; j++)
 	{
-		cout << "here 0\n";
 		cuda_stat = cudaMalloc( (void**) &dAk[j], sizeof(double)*NB*NB );
 		if( cuda_stat != cudaSuccess )
 		{
@@ -71,7 +73,6 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 			exit(EXIT_FAILURE);
 		}
 
-		cout << "here 1\n";
 		cuda_stat = cudaMalloc( (void**) &dAi[j], sizeof(double)*NB*NB );
 		if( cuda_stat != cudaSuccess )
 		{

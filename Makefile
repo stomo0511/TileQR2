@@ -5,6 +5,17 @@ ifeq ($(UNAME),Linux)
   BLAS_INC_DIR = $(BLAS_ROOT)/include
   BLAS_LIB_DIR = $(BLAS_ROOT)/lib/intel64
   SBLAS_LIBS = -Wl,--start-group $(BLAS_LIB_DIR)/libmkl_intel_lp64.a $(BLAS_LIB_DIR)/libmkl_sequential.a $(BLAS_LIB_DIR)/libmkl_core.a -Wl,--end-group -lpthread -ldl -lm
+#
+CUDA_ROOT = /usr/local/cuda
+CUDA_INC_DIR = $(CUDA_ROOT)/include
+CUDA_LIB_DIR = $(CUDA_ROOT)/lib64
+CUDA_LIBS = -lcublas -lcudart
+#
+PLASMA_ROOT = /opt/PLASMA-17.1
+PLASMA_INC_DIR = $(PLASMA_ROOT)/include
+PLASMA_LIB_DIR = $(PLASMA_ROOT)/lib
+PLASMA_LIBS = -lcoreblas -lplasma
+#
   CXX =	g++
 endif
 ifeq ($(UNAME),Darwin)
@@ -12,21 +23,19 @@ ifeq ($(UNAME),Darwin)
   BLAS_INC_DIR = $(BLAS_ROOT)/include
   BLAS_LIB_DIR = $(BLAS_ROOT)/lib
   SBLAS_LIBS = $(BLAS_LIB_DIR)/libmkl_intel_lp64.a $(BLAS_LIB_DIR)/libmkl_sequential.a $(BLAS_LIB_DIR)/libmkl_core.a -lpthread -ldl -lm
-  CXX =	/usr/local/bin/g++ 
-endif
-
-
+#
+CUDA_ROOT = /usr/local/cuda
+CUDA_INC_DIR = $(CUDA_ROOT)/include
+CUDA_LIB_DIR = $(CUDA_ROOT)/lib
+CUDA_LIBS = -lcublas -lcudart
 #
 PLASMA_ROOT = /opt/plasma-17.1
 PLASMA_INC_DIR = $(PLASMA_ROOT)/include
 PLASMA_LIB_DIR = $(PLASMA_ROOT)/lib
 PLASMA_LIBS = -lcoreblas -lplasma
 #
-CUDA_ROOT = /usr/local/cuda
-CUDA_INC_DIR = $(CUDA_ROOT)/include
-CUDA_LIB_DIR = $(CUDA_ROOT)/lib64
-CUDA_LIBS = -lcublas -lcudart
-#
+  CXX =	/usr/local/bin/g++ 
+endif
 
 CXXFLAGS =	-fopenmp -m64 -O2 -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR) -I$(CUDA_INC_DIR)
 
