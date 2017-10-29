@@ -53,4 +53,4 @@ RT:	$(RTOBJS)
 				$(SBLAS_LIBS)
 
 clean:
-	rm -f $(RTOBJS)　$(RT)
+	rm -f $(RLOBJS) $(RTOBJS) $(GRLOBJS)
