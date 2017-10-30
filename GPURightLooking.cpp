@@ -296,27 +296,27 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 				//
 				// Send elements data of dAk[j] back
 				//
-				{
-					cublas_stat = cublasGetMatrix( A->mb(tk,tj), A->nb(tk,tj), sizeof(double),
-							dAk[tj], A->mb(tk,tj), A->ttop(tk,tj), A->mb(tk,tj) );
-					if( cublas_stat != CUBLAS_STATUS_SUCCESS)
-					{
-						cerr << "Data copy to Akj failure\n";
-						exit(EXIT_FAILURE);
-					}
-				}
+//				{
+//					cublas_stat = cublasGetMatrix( A->mb(tk,tj), A->nb(tk,tj), sizeof(double),
+//							dAk[tj], A->mb(tk,tj), A->ttop(tk,tj), A->mb(tk,tj) );
+//					if( cublas_stat != CUBLAS_STATUS_SUCCESS)
+//					{
+//						cerr << "Data copy to Akj failure\n";
+//						exit(EXIT_FAILURE);
+//					}
+//				}
 				//
 				// Send elements data of dAi[j] back
 				//
-				{
-					cublas_stat = cublasGetMatrix( A->mb(ti,tj), A->nb(ti,tj), sizeof(double),
-							dAi[tj], A->mb(ti,tj), A->ttop(ti,tj), A->mb(ti,tj) );
-					if( cublas_stat != CUBLAS_STATUS_SUCCESS)
-					{
-						cerr << "Data copy to Aij failure\n";
-						exit(EXIT_FAILURE);
-					}
-				}
+//				{
+//					cublas_stat = cublasGetMatrix( A->mb(ti,tj), A->nb(ti,tj), sizeof(double),
+//							dAi[tj], A->mb(ti,tj), A->ttop(ti,tj), A->mb(ti,tj) );
+//					if( cublas_stat != CUBLAS_STATUS_SUCCESS)
+//					{
+//						cerr << "Data copy to Aij failure\n";
+//						exit(EXIT_FAILURE);
+//					}
+//				}
 			} // j-LOOP END
 		} // i-LOOP END
 	} // k-LOOP END
