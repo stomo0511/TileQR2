@@ -29,7 +29,7 @@ CUDA_INC_DIR = $(CUDA_ROOT)/include
 CUDA_LIB_DIR = $(CUDA_ROOT)/lib
 CUDA_LIBS = -lcublas -lcudart
 #
-PLASMA_ROOT = /opt/plasma-17.1
+#PLASMA_ROOT = /opt/plasma-17.1
 PLASMA_INC_DIR = $(PLASMA_ROOT)/include
 PLASMA_LIB_DIR = $(PLASMA_ROOT)/lib
 PLASMA_LIBS = -lcoreblas -lplasma
