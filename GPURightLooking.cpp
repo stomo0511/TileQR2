@@ -7,6 +7,7 @@
  *  *** Single Stream Version ***
  */
 
+#define _DEBUG
 #define _COUT
 
 #include <iostream>
@@ -58,6 +59,10 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 		}
 	}
 
+	// Allocate Working space
+	double *Work = new double [NB*IB];
+	double *Tau  = new double [NB];
+
 	// Allocate device memory
 	double **dAk   = new double*[NT];
 	double **dAi   = new double*[NT];
@@ -106,9 +111,6 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 		// GEQRT part
 		//
 		{
-			double *Tau = new double [A->nb(tk,tk)];
-			double *Work = new double [A->nb(tk,tk)*A->ib()];
-
 			int info = core_dgeqrt( A->mb(tk,tk), A->nb(tk,tk), A->ib(),
 					A->ttop(tk,tk), A->mb(tk,tk),
 					T->ttop(tk,tk), T->mb(tk,tk),
@@ -124,9 +126,6 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 			// cout << omp_get_thread_num() << " : " << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
 			cout << omp_get_thread_num() << " : " << "GEQRT(" << tk << "," << tk << "," << tk << ")\n";
 			#endif
-
-			delete[] Tau;
-			delete[] Work;
 		}
 
 		//
@@ -173,7 +172,6 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 			// LARFB part
 			//
 			int nb = A->nb(tk,tj);
-			double *Work = new double [nb*A->ib()];
 
 			int info = core_dormqr( PlasmaLeft, PlasmaTrans,
 					A->mb(tk,tj), A->nb(tk,tj), min(A->mb(tk,tk),A->nb(tk,tk)), A->ib(),
@@ -181,7 +179,6 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 					T->ttop(tk,tk), T->mb(tk,tk),
 					A->ttop(tk,tj), A->mb(tk,tj),
 					Work, nb);
-
 			if (info != PlasmaSuccess)
 			{
 				cerr << "core_dormqr() failed\n";
@@ -193,8 +190,6 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 			// cout << omp_get_thread_num() << " : " << "LARFB(" << tk << "," << tj << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
 			cout << omp_get_thread_num() << " : " << "LARFB(" << tk << "," << tj << "," << tk << ")\n";
 			#endif
-
-			delete[] Work;
 		}
 
 		for (int ti=tk+1; ti < MT; ti++)
@@ -203,9 +198,6 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 			// TSQRT part
 			//
 			{
-				double *Tau = new double [A->nb(ti,tk)];
-				double *Work = new double [A->nb(ti,tk)*A->ib()];
-
 				int info = core_dtsqrt( A->mb(ti,tk), A->nb(ti,tk), A->ib(),
 						A->ttop(tk,tk), A->mb(tk,tk),
 						A->ttop(ti,tk), A->mb(ti,tk),
@@ -222,9 +214,6 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 				// cout << omp_get_thread_num() << " : " << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
 				cout << omp_get_thread_num() << " : " << "TSQRT(" << ti << "," << tk << "," << tk << ")\n";
 				#endif
-
-				delete[] Tau;
-				delete[] Work;
 			}
 
 			//
@@ -270,8 +259,6 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 				//
 				// SSRFB part
 				//
-				double *Work = new double [A->ib()*A->nb(tk,tj)];
-
 				int info = core_dtsmqr( PlasmaLeft, PlasmaTrans,
 						A->mb(tk,tj), A->nb(tk,tj), A->mb(ti,tj), A->nb(ti,tj), A->nb(ti,tk), A->ib(),
 						A->ttop(tk,tj), A->mb(tk,tj),
@@ -290,8 +277,6 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 				// cout << omp_get_thread_num() << " : " << "SSRFB(" << ti << "," << tj << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
 				cout << omp_get_thread_num() << " : " << "SSRFB(" << ti << "," << tj << "," << tk << ")\n";
 				#endif
-
-				delete[] Work;
 
 				//
 				// Send elements data of dAk[j] back
@@ -322,6 +307,9 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 	} // k-LOOP END
 
 	//////////////////////////////////////////////////////////////////////
+	delete [] Work;
+	delete [] Tau;
+
 	for (int j=0; j<NT; j++)
 	{
 		cudaFree(dAk[j]);
