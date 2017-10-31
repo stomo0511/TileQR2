@@ -25,6 +25,7 @@
 #define GDEV_ID  1
 
 #include "TileMatrix.hpp"
+#include "GPU_Kernel.hpp"
 
 using namespace std;
 
@@ -105,7 +106,8 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 
 	////////////////////////////////////////////////////////////////////////////
 	// Right Looking tile QR
-	for (int tk=0; tk < min(MT,NT); tk++ )
+//	for (int tk=0; tk < min(MT,NT); tk++ )
+	for (int tk=0; tk < 1; tk++ )
 	{
 		//
 		// GEQRT part
@@ -190,120 +192,149 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 			// cout << omp_get_thread_num() << " : " << "LARFB(" << tk << "," << tj << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
 			cout << omp_get_thread_num() << " : " << "LARFB(" << tk << "," << tj << "," << tk << ")\n";
 			#endif
+
+			cout << endl;
+			A->Show_tile(tk,tj);
+
+			//
+			// GPU LARFB part
+			//
+			GPU_dLARFB( handle[tj],
+					A->mb(tk,tj), A->nb(tk,tj), min(A->mb(tk,tk),A->nb(tk,tk)), A->ib(),
+					dAk[tk], A->mb(tk,tk),
+					dT, T->mb(tk,tk),
+					dAk[tj], A->mb(tk,tj),
+					dWork[tj], nb);
+
+			//
+			// Send elements data of dAk[j] back
+			//
+			{
+				cublas_stat = cublasGetMatrix( A->mb(tk,tj), A->nb(tk,tj), sizeof(double),
+						dAk[tj], A->mb(tk,tj), A->ttop(tk,tj), A->mb(tk,tj) );
+				if( cublas_stat != CUBLAS_STATUS_SUCCESS)
+				{
+					cerr << "Data copy to Akj failure\n";
+					exit(EXIT_FAILURE);
+				}
+			}
+			cout << endl;
+			A->Show_tile(tk,tj);
+
 		}
 
-		for (int ti=tk+1; ti < MT; ti++)
-		{
-			//
-			// TSQRT part
-			//
-			{
-				int info = core_dtsqrt( A->mb(ti,tk), A->nb(ti,tk), A->ib(),
-						A->ttop(tk,tk), A->mb(tk,tk),
-						A->ttop(ti,tk), A->mb(ti,tk),
-						T->ttop(ti,tk), T->mb(ti,tk),
-						Tau, Work);
-				if (info != PlasmaSuccess)
-				{
-					cerr << "core_dtsqrt() failed\n";
-					exit (EXIT_FAILURE);
-				}
-
-				#ifdef _COUT
-				#pragma omp critical
-				// cout << omp_get_thread_num() << " : " << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
-				cout << omp_get_thread_num() << " : " << "TSQRT(" << ti << "," << tk << "," << tk << ")\n";
-				#endif
-			}
-
-			//
-			// Set elements data of dAi[k]
-			//
-			{
-				cublas_stat = cublasSetMatrix( A->mb(ti,tk), A->nb(ti,tk), sizeof(double),
-						A->ttop(ti,tk), A->mb(ti,tk), dAi[tk], A->mb(ti,tk) );
-				if( cublas_stat != CUBLAS_STATUS_SUCCESS)
-				{
-					cerr << "Data copy to dAi[k] failure\n";
-					exit(EXIT_FAILURE);
-				}
-			}
-			//
-			// Set elements data of dT
-			//
-			{
-				cublas_stat = cublasSetMatrix( T->mb(ti,tk), T->nb(ti,tk), sizeof(double),
-						T->ttop(ti,tk), T->mb(ti,tk), dT, T->mb(ti,tk) );
-				if( cublas_stat != CUBLAS_STATUS_SUCCESS)
-				{
-					cerr << "Data copy to dT failure (TSQRT)\n";
-					exit(EXIT_FAILURE);
-				}
-			}
-
-			for (int tj=tk+1; tj < NT; tj++)
-			{
-				//
-				// Send elements data to dAi[j]
-				//
-				{
-					cublas_stat = cublasSetMatrix( A->mb(ti,tj), A->nb(ti,tj), sizeof(double),
-							A->ttop(ti,tj), A->mb(ti,tj), dAi[tj], A->mb(ti,tj) );
-					if( cublas_stat != CUBLAS_STATUS_SUCCESS)
-					{
-						cerr << "Data copy to dAi[" << tj << "] failure\n";
-						exit(EXIT_FAILURE);
-					}
-				}
-
-				//
-				// SSRFB part
-				//
-				int info = core_dtsmqr( PlasmaLeft, PlasmaTrans,
-						A->mb(tk,tj), A->nb(tk,tj), A->mb(ti,tj), A->nb(ti,tj), A->nb(ti,tk), A->ib(),
-						A->ttop(tk,tj), A->mb(tk,tj),
-						A->ttop(ti,tj), A->mb(ti,tj),
-						A->ttop(ti,tk), A->mb(ti,tk),
-						T->ttop(ti,tk), T->mb(ti,tk),
-						Work,  A->ib());
-				if (info != PlasmaSuccess)
-				{
-					cerr << "core_dtsmqr() failed\n";
-					exit (EXIT_FAILURE);
-				}
-
-				#ifdef _COUT
-				#pragma omp critical
-				// cout << omp_get_thread_num() << " : " << "SSRFB(" << ti << "," << tj << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
-				cout << omp_get_thread_num() << " : " << "SSRFB(" << ti << "," << tj << "," << tk << ")\n";
-				#endif
-
-				//
-				// Send elements data of dAk[j] back
-				//
+//		for (int ti=tk+1; ti < MT; ti++)
+//		{
+//			//
+//			// TSQRT part
+//			//
+//			{
+//				int info = core_dtsqrt( A->mb(ti,tk), A->nb(ti,tk), A->ib(),
+//						A->ttop(tk,tk), A->mb(tk,tk),
+//						A->ttop(ti,tk), A->mb(ti,tk),
+//						T->ttop(ti,tk), T->mb(ti,tk),
+//						Tau, Work);
+//				if (info != PlasmaSuccess)
 //				{
-//					cublas_stat = cublasGetMatrix( A->mb(tk,tj), A->nb(tk,tj), sizeof(double),
-//							dAk[tj], A->mb(tk,tj), A->ttop(tk,tj), A->mb(tk,tj) );
+//					cerr << "core_dtsqrt() failed\n";
+//					exit (EXIT_FAILURE);
+//				}
+//
+//				#ifdef _COUT
+//				#pragma omp critical
+//				// cout << omp_get_thread_num() << " : " << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
+//				cout << omp_get_thread_num() << " : " << "TSQRT(" << ti << "," << tk << "," << tk << ")\n";
+//				#endif
+//			}
+//
+//			//
+//			// Set elements data of dAi[k]
+//			//
+//			{
+//				cublas_stat = cublasSetMatrix( A->mb(ti,tk), A->nb(ti,tk), sizeof(double),
+//						A->ttop(ti,tk), A->mb(ti,tk), dAi[tk], A->mb(ti,tk) );
+//				if( cublas_stat != CUBLAS_STATUS_SUCCESS)
+//				{
+//					cerr << "Data copy to dAi[k] failure\n";
+//					exit(EXIT_FAILURE);
+//				}
+//			}
+//			//
+//			// Set elements data of dT
+//			//
+//			{
+//				cublas_stat = cublasSetMatrix( T->mb(ti,tk), T->nb(ti,tk), sizeof(double),
+//						T->ttop(ti,tk), T->mb(ti,tk), dT, T->mb(ti,tk) );
+//				if( cublas_stat != CUBLAS_STATUS_SUCCESS)
+//				{
+//					cerr << "Data copy to dT failure (TSQRT)\n";
+//					exit(EXIT_FAILURE);
+//				}
+//			}
+//
+//			for (int tj=tk+1; tj < NT; tj++)
+//			{
+//				//
+//				// Send elements data to dAi[j]
+//				//
+//				{
+//					cublas_stat = cublasSetMatrix( A->mb(ti,tj), A->nb(ti,tj), sizeof(double),
+//							A->ttop(ti,tj), A->mb(ti,tj), dAi[tj], A->mb(ti,tj) );
 //					if( cublas_stat != CUBLAS_STATUS_SUCCESS)
 //					{
-//						cerr << "Data copy to Akj failure\n";
+//						cerr << "Data copy to dAi[" << tj << "] failure\n";
 //						exit(EXIT_FAILURE);
 //					}
 //				}
-				//
-				// Send elements data of dAi[j] back
-				//
+//
+//				//
+//				// SSRFB part
+//				//
+//				int info = core_dtsmqr( PlasmaLeft, PlasmaTrans,
+//						A->mb(tk,tj), A->nb(tk,tj), A->mb(ti,tj), A->nb(ti,tj), A->nb(ti,tk), A->ib(),
+//						A->ttop(tk,tj), A->mb(tk,tj),
+//						A->ttop(ti,tj), A->mb(ti,tj),
+//						A->ttop(ti,tk), A->mb(ti,tk),
+//						T->ttop(ti,tk), T->mb(ti,tk),
+//						Work,  A->ib());
+//				if (info != PlasmaSuccess)
 //				{
-//					cublas_stat = cublasGetMatrix( A->mb(ti,tj), A->nb(ti,tj), sizeof(double),
-//							dAi[tj], A->mb(ti,tj), A->ttop(ti,tj), A->mb(ti,tj) );
-//					if( cublas_stat != CUBLAS_STATUS_SUCCESS)
-//					{
-//						cerr << "Data copy to Aij failure\n";
-//						exit(EXIT_FAILURE);
-//					}
+//					cerr << "core_dtsmqr() failed\n";
+//					exit (EXIT_FAILURE);
 //				}
-			} // j-LOOP END
-		} // i-LOOP END
+//
+//				#ifdef _COUT
+//				#pragma omp critical
+//				// cout << omp_get_thread_num() << " : " << "SSRFB(" << ti << "," << tj << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
+//				cout << omp_get_thread_num() << " : " << "SSRFB(" << ti << "," << tj << "," << tk << ")\n";
+//				#endif
+//
+//				//
+//				// Send elements data of dAk[j] back
+//				//
+////				{
+////					cublas_stat = cublasGetMatrix( A->mb(tk,tj), A->nb(tk,tj), sizeof(double),
+////							dAk[tj], A->mb(tk,tj), A->ttop(tk,tj), A->mb(tk,tj) );
+////					if( cublas_stat != CUBLAS_STATUS_SUCCESS)
+////					{
+////						cerr << "Data copy to Akj failure\n";
+////						exit(EXIT_FAILURE);
+////					}
+////				}
+//				//
+//				// Send elements data of dAi[j] back
+//				//
+////				{
+////					cublas_stat = cublasGetMatrix( A->mb(ti,tj), A->nb(ti,tj), sizeof(double),
+////							dAi[tj], A->mb(ti,tj), A->ttop(ti,tj), A->mb(ti,tj) );
+////					if( cublas_stat != CUBLAS_STATUS_SUCCESS)
+////					{
+////						cerr << "Data copy to Aij failure\n";
+////						exit(EXIT_FAILURE);
+////					}
+////				}
+//			} // j-LOOP END
+//		} // i-LOOP END
 	} // k-LOOP END
 
 	//////////////////////////////////////////////////////////////////////

@@ -40,7 +40,7 @@ endif
 CXXFLAGS =	-fopenmp -m64 -O2 -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR) -I$(CUDA_INC_DIR)
 
 RLOBJS =	TileMatrix.o TileQR.o Check_Accuracy.o RightLooking.o
-GRLOBJS =	TileMatrix.o TileQR.o Check_Accuracy.o GPURightLooking.o
+GRLOBJS =	TileMatrix.o TileQR.o Check_Accuracy.o GPURightLooking.o GPU_Kernel.o
 RTOBJS =	TileMatrix.o TileQR.o Check_Accuracy.o RightLooking_Task.o
 
 all:	RL GRL RT
