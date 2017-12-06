@@ -15,7 +15,6 @@ ifeq ($(UNAME),Darwin)
   CXX =	/usr/local/bin/g++ 
 endif
 
-
 #
 PLASMA_ROOT = /opt/plasma-17.1
 PLASMA_INC_DIR = $(PLASMA_ROOT)/include
@@ -29,10 +28,15 @@ RTOBJS =	TileMatrix.o TileQR.o Check_Accuracy.o RightLooking_Task.o
 
 all:	RL RT
 
+TD:	$(TDOBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(TDOBJS) \
+				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
+				$(SBLAS_LIBS)
+				
 RL:	$(RLOBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(RLOBJS) \
 				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
-				$(SBLAS_LIBS)
+				$(SBLAS_LIBS)				
 
 RT:	$(RTOBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(RTOBJS) \
