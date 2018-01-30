@@ -62,7 +62,8 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 
 					#ifdef COUT
 					#pragma omp critical
-					cout << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+//					cout << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+					cout << omp_get_thread_num() << "," << tk << "," << tk << "," << tk << "," << omp_get_wtime() - ttime << "\n";
 					#endif
 
 					delete[] Tau;
@@ -78,7 +79,7 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 					assert( Akk_m == Akj_m );
 
 					#pragma omp task depend(in:Akk_top[:Akk_m*Akk_n]) \
-									 depend(in:Tkk_top[:Tkk_m*Tkk_n]) \
+					                 depend(in:Tkk_top[:Tkk_m*Tkk_n]) \
 									 depend(inout:Akj_top[:Akj_m*Akj_n])
 					{
 						double *Work = new double [Akj_n*ib];
@@ -97,7 +98,8 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 
 						#ifdef COUT
 						#pragma omp critical
-						cout << "LARFB(" << tk << "," << tj << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+//						cout << "LARFB(" << tk << "," << tj << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+						cout << omp_get_thread_num() << "," << tk << "," << tj << "," << tk << "," << omp_get_wtime() - ttime << "\n";
 						#endif
 
 						delete[] Work;
@@ -133,7 +135,8 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 
 						#ifdef COUT
 						#pragma omp critical
-						cout << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+//						cout << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+						cout << omp_get_thread_num() << "," << ti << "," << tk << "," << tk << "," << omp_get_wtime() - ttime << "\n";
 						#endif
 
 						delete[] Tau;
@@ -172,7 +175,8 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 
 							#ifdef COUT
 							#pragma omp critical
-							cout << "SSRFB(" << ti << "," << tj << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+//							cout << "SSRFB(" << ti << "," << tj << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+							cout << omp_get_thread_num() << "," << ti << "," << tj << "," << tk << "," << omp_get_wtime() - ttime << "\n";
 							#endif
 
 							delete[] Work;

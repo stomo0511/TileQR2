@@ -47,7 +47,8 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 
 			#ifdef COUT
 			#pragma omp critical
-			cout << omp_get_thread_num() << " : " << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
+//			cout << omp_get_thread_num() << " : " << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
+			cout << omp_get_thread_num() << "," << tk << "," << tk << "," << tk << "," << omp_get_wtime() - ttime << "\n";
 			#endif
 
 			delete[] Tau;
@@ -74,7 +75,8 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 
 			#ifdef COUT
 			#pragma omp critical
-			cout << omp_get_thread_num() << " : " << "LARFB(" << tk << "," << tj << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
+//			cout << omp_get_thread_num() << " : " << "LARFB(" << tk << "," << tj << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
+			cout << omp_get_thread_num() << "," << tk << "," << tj << "," << tk << "," << omp_get_wtime() - ttime << "\n";
 			#endif
 
 			delete[] Work;
@@ -99,7 +101,8 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 
 				#ifdef COUT
 				#pragma omp critical
-				cout << omp_get_thread_num() << " : " << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
+//				cout << omp_get_thread_num() << " : " << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
+				cout << omp_get_thread_num() << "," << ti << "," << tk << "," << tk << "," << omp_get_wtime() - ttime << "\n";
 				#endif
 
 				delete[] Tau;
@@ -126,7 +129,8 @@ void tileQR( TileMatrix *A, TileMatrix *T )
 
 				#ifdef COUT
 				#pragma omp critical
-				cout << omp_get_thread_num() << " : " << "SSRFB(" << ti << "," << tj << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
+//				cout << omp_get_thread_num() << " : " << "SSRFB(" << ti << "," << tj << "," << tk << ") : " << omp_get_wtime() - ttime << "\n";
+				cout << omp_get_thread_num() << "," << ti << "," << tj << "," << tk << "," << omp_get_wtime() - ttime << "\n";
 				#endif
 
 				delete[] Work;
