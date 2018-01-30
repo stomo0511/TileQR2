@@ -30,7 +30,7 @@ int main(int argc, const char * argv[])
 		cerr << "Usage: a.out [M] [N] [NB] [IB]\n";
 		exit (EXIT_FAILURE);
 	}
-	
+
 	const int M =  atoi(argv[1]);  // n. of rows of the matrix
 	const int N =  atoi(argv[2]);  // n. of columns of the matrix
 	const int NB = atoi(argv[3]);  // tile size
@@ -38,14 +38,14 @@ int main(int argc, const char * argv[])
 
 	assert( M >= N );
 	assert( NB >= IB );
-	
+
 	//////////////////////////////////////////////////////////////////////
 	// Definitions and Initialize
 	TileMatrix *A = new TileMatrix(M,N,NB,NB,IB);
-	
+
 	const int MT = A->mt();
 	const int NT = A->nt();
-	
+
 	#ifdef COUT
 	cout << "M = " << M << ", N = " << N << ", NB = " << NB << ", IB = " << IB;
 	cout << ", MT = " << MT << ", NT = " << NT << endl;
@@ -53,7 +53,7 @@ int main(int argc, const char * argv[])
 
 	// refered in workspace.c of PLASMA
 	TileMatrix *T = new TileMatrix(MT*IB,NT*NB,IB,NB,IB);
-	
+
 	// Initialize matrix A
 	A->Set_Rnd( 20170621 );
 
@@ -73,11 +73,11 @@ int main(int argc, const char * argv[])
 	// tile QR variants
 	tileQR(A,T);
 	////////////////////////////////////////////////////////////////////////////
-	
+
 	// Timer stop
 	time = omp_get_wtime() - time;
 	cout << M << ", " << NB << ", " << IB << ", " << time << endl;
-	
+
 	#ifdef DEBUG
 	//////////////////////////////////////////////////////////////////////
 	// Regenerate Q
